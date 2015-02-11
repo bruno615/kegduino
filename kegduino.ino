@@ -12,7 +12,8 @@ unsigned long startCompressorTime = 0;
 unsigned long startCoolDownTime = 0;
 unsigned long secondsON = 0;
 unsigned long secondsOFF = 0;
-string message = "Bruno's Kegduino" //String to display during operation
+char message = 'Brunos Kegduino'; //String to display during operation
+//Add an escape char here for '
 
 // Setup the LCD Display
 // Attach to pins    12 13 14  15  16
@@ -51,7 +52,7 @@ void loop() {
 
   // Write Temperature and Message to LCD Screen
   lcd.clear();
-  printMessage(message)
+  printMessage(message);
   printTemp(tempF);
 
   // Count the seconds - Check this for flaws
@@ -104,7 +105,7 @@ void printTemp(float tempF){
   lcd.write("*F");
 }
 
-void printMessage(string message) {
+void printMessage(char message) {
   lcd.setCursor(0,0);
-  lcd.write(message)
+  lcd.write(message);
 }
