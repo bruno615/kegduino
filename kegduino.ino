@@ -3,17 +3,16 @@
 #include <LiquidCrystal.h>
 //float temp;
 int tempPin = 0;
-float targetTemp = 80;
-float lowTemp = 77;
+float targetTemp = 77;
+float maxTemp = 80;
 float chillTime = 30;
 float restTime = 60;
-boolean compressorStatus = false;
+boolean isCompressorActive = false;
 unsigned long startCompressorTime = 0;
 unsigned long startCoolDownTime = 0;
-unsigned long secondsON = 0;
-unsigned long secondsOFF = 0;
-char message = 'Brunos Kegduino'; //String to display during operation
-//Add an escape char here for '
+unsigned long secondsON = 100;
+unsigned long secondsOFF = 100; 
+
 
 // Setup the LCD Display
 // Attach to pins    12 13 14  15  16
@@ -46,31 +45,46 @@ void loop() {
   float tempC = reading * (5.0 * 1000 / 1024) / 10;
   float tempF = tempC * 9 / 5 + 32;
 
+
   //Remove this Serial part after debugging
   Serial.print(tempF);
   Serial.println("*F  ");
+  Serial.println(isCompressorActive);
+  Serial.println(secondsON);
+  Serial.println(secondsOFF);
 
-  // Write Temperature and Message to LCD Screen
-  lcd.clear();
-  printMessage(message);
-  printTemp(tempF);
-
-  // Count the seconds - Check this for flaws
-  secondsON = round((millis()-startCompressorTime)/1000);
-  secondsOFF = round((millis()-startCoolDownTime)/1000);
+  // Figure out current status
+  boolean isCool = tempF <= targetTemp;
+  boolean isTooHot = tempF > maxTemp;
+  boolean isCompressorRested = secondsOFF > restTime;
+  boolean compressorWorked = secondsON > chillTime;
 
  // Main Loop
-  if (!compressorStatus && tempF > targetTemp && secondsOFF > restTime) {
-    // Turn Compressor on if OFF & above target temp & rested
-      compressorON();
+  if (!isCompressorActive && isTooHot && isCompressorRested) {
+    // Turn Compressor ON if OFF & above max temp & rested
+      turnCompressorON();
+      printScreen(tempF, "Compressor On");
   }
-  else if (compressorStatus && tempF <= targetTemp && secondsON > chillTime)  {
-    // Turn Compressor off if ON & below target temp & chilled long enough
-      compressorOFF();
+  else if (isCompressorActive && isCool)  {
+    // Turn Compressor OFF if ON & below target temp
+      turnCompressorOFF();
+      printScreen(tempF, "Compressor Off");
+
   }
   else {
-    // No change
+    // Write Temperature and Message to LCD Screen
+    printScreen(tempF, "Bruno's Kegduino");
+    
+    // Count the seconds - Check this for flaws
+    secondsON = round((millis()-startCompressorTime)/1000);
+    secondsOFF = round((millis()-startCoolDownTime)/1000);
   }
+  //Blink if compressor is active
+  if (isCompressorActive) { //add blinking cursor?
+    lcd.setCursor(14,1);
+    lcd.print(secondsON);
+  }
+
   delay(1000);
 }
 
@@ -82,30 +96,31 @@ void loop() {
 
 //Functions////////////////////////////////////////////////////////////
 
-void compressorON() {
+void turnCompressorON() {
   digitalWrite(5, HIGH);//Turn on the compressor
-  compressorStatus = true;
+  isCompressorActive = true;
   startCompressorTime = millis();  //
   //lcd.write("Compressor Go!!!");
 }
 
-void compressorOFF() {
+void turnCompressorOFF() {
   digitalWrite(5, LOW); //Shut off compressor
-  compressorStatus = false;
+  isCompressorActive = false;
   startCoolDownTime = millis();
   //lcd.write("All Better!");
 }
 
-void printTemp(float tempF){
+void printScreen(float tempF, const char* message) {
+  lcd.clear();
+  lcd.print(message);
   lcd.setCursor(0,1);
   lcd.write("Temp:");
   lcd.setCursor(6,1);
   lcd.print(round(tempF));
   lcd.setCursor(8,1);
   lcd.write("*F");
-}
+  
+  
+  
 
-void printMessage(char message) {
-  lcd.setCursor(0,0);
-  lcd.write(message);
 }
